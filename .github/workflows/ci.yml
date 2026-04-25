@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-unix:
+    name: ${{ matrix.os }} / ${{ matrix.compiler }} / gnu99
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            compiler: gcc
+          - os: ubuntu-latest
+            compiler: clang
+          - os: macos-latest
+            compiler: clang
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run make test
+        run: make test CC=${{ matrix.compiler }}
+
+  build-freebsd:
+    name: freebsd-14 / ${{ matrix.compiler }} / gnu99
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build in FreeBSD VM
+        uses: vmactions/freebsd-vm@v1
+        with:
+          release: "14.2"
+          usesh: true
+          run: |
+            pkg install -y gcc clang
+            make test CC=${{ matrix.compiler }}

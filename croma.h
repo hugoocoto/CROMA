@@ -158,3 +158,33 @@
                         (q_ptr)->count -= 1; \
                 }                            \
         } while (0)
+
+
+#define MIN(a, b) ({              \
+        __auto_type _a = (a);     \
+        __auto_type _b = (b);     \
+        (_a) < (_b) ? (_a) : (_b);\
+})
+
+#define MAX(a, b) ({              \
+        __auto_type _a = (a);     \
+        __auto_type _b = (b);     \
+        (_a) > (_b) ? (_a) : (_b);\
+})
+
+/* Zero-initialize an object/struct by bytes. */
+#define ZERO(x) memset(&(x), 0, sizeof((x)))
+
+/* Binary size helpers (KiB/MiB/GiB/TiB). */
+#define KB(x) ((size_t) (x) << 10)
+#define MB(x) ((size_t) (x) << 20)
+#define GB(x) ((size_t) (x) << 30)
+#define TB(x) ((size_t) (x) << 40)
+
+/* Bitflags helpers: N is the flag-set value, F is the mask. */
+#define BF(n) ((n) = 0u)
+#define BF_SET(n, f) ((n) |= (f))
+#define BF_CLR(n, f) ((n) &= ~(f))
+#define BF_HAS(n, f) (((n) & (f)) == (f))
+
+#define TOSTRING(x) #x
