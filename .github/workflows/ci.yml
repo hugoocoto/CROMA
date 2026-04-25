@@ -25,12 +25,8 @@ jobs:
         run: make test CC=${{ matrix.compiler }}
 
   build-freebsd:
-    name: freebsd-14 / ${{ matrix.compiler }} / gnu99
+    name: freebsd-14 / cc / gnu99
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        compiler: [gcc, clang]
     steps:
       - uses: actions/checkout@v4
 
@@ -40,5 +36,4 @@ jobs:
           release: "14.2"
           usesh: true
           run: |
-            pkg install -y gcc clang
-            make test CC=${{ matrix.compiler }}
+            make test CC=cc

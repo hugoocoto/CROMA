@@ -1,28 +1,19 @@
 # CROMA
 
-C **header-only** library with utility macros for:
-
-- fatal error handling (`CROMA_PANIC`, `CROMA_TODO`, `CROMA_UNREACHABLE`)
-- generic dynamic arrays (`DA(type)`)
-- simple queue/stack built on `DA` (`QQ(type)`)
-- silencing unused-variable warnings (`UNUSED(...)`)
-- small utility helpers (`MIN`, `MAX`, `ZERO`, `KB/MB/GB/TB`, `BF_*`, `TOSTRING`)
+C **header-only** utility macros for error handling, generic dynamic arrays, queue/stack helpers, and small low-level helpers.
 
 ## Requirements
 
-- C compiler with GNU extensions 
+- C compiler with GNU extensions.
+- Tested with `-std=gnu99`.
 
 ## Installation
-
-Just include the header in your project:
 
 ```c
 #include "croma.h"
 ```
 
 ## Testing
-
-Run the smoke test with:
 
 ```sh
 make test
@@ -35,7 +26,6 @@ make test
 
 int main(void) {
     DA(int) nums = {0};
-
     da_append(&nums, 10);
     da_append(&nums, 20);
     da_insert(&nums, 15, 1); // [10, 15, 20]
@@ -50,53 +40,89 @@ int main(void) {
 }
 ```
 
-## Quick queue/stack (`QQ`)
+## API reference
 
-```c
-QQ(int) q = {0};
-qq_push(&q, 1);
-qq_push(&q, 2);
-int top = qq_top(&q); // 2
-qq_pop(&q);           // removes the last element
-da_destroy(&q);
-```
+### Unused-value helpers
 
-## Configuration options
+| Macro | Description |
+| --- | --- |
+| `UNUSED(...)` | Marks up to 6 values/parameters as intentionally unused. |
+| `UNUSED1`..`UNUSED5` | Internal expansion helpers used by `UNUSED`. |
 
-In `croma.h` you can configure:
+### Configuration macros
 
-- `TRIMPREFIX` and `LOWERCASE` for aliases (`panic`, `todo`, `unreachable`)
-- `CROMA_OUTFILE` to change the output stream (default: `stderr`)
+| Macro | Description |
+| --- | --- |
+| `TRIMPREFIX` | Enables short lowercase aliases without `croma_` prefix (`panic`, `todo`, `unreachable`). |
+| `LOWERCASE` | Enables lowercase aliases for panic/todo/unreachable macros. |
+| `CROMA_OUTFILE` | Output stream used by fatal macros (default: `stderr`). |
 
-## Unused macro (`UNUSED`)
+### Fatal error macros
 
-Use `UNUSED(...)` to explicitly mark variables/parameters as intentionally unused and avoid compiler warnings.
-It supports up to 6 arguments in a single call.
+| Macro | Description |
+| --- | --- |
+| `PANIC_MSG` | Prefix string used by `CROMA_PANIC`. |
+| `TODO_MSG` | Prefix string used by `CROMA_TODO`. |
+| `UNREACHABLE_MSG` | Prefix string used by `CROMA_UNREACHABLE`. |
+| `CROMA_PANIC(fmt, ...)` | Prints panic message + file/line and aborts. |
+| `CROMA_TODO(fmt, ...)` | Prints todo message + file/line and aborts. |
+| `CROMA_UNREACHABLE(fmt, ...)` | Prints unreachable message + file/line and aborts. |
 
-```c
-void handler(int status, void *ctx) {
-    UNUSED(status, ctx);
-}
-```
+### Conditional aliases for fatal macros
 
-## Utility macros
+When `LOWERCASE` is enabled:
 
-- `MIN(a, b)` / `MAX(a, b)`: min/max with single evaluation of each argument.
-- `ZERO(x)`: zero-initialize an object/struct by bytes.
-- `KB(x)`, `MB(x)`, `GB(x)`, `TB(x)`: binary size helpers based on `size_t`.
-- `BF(n)`, `BF_SET(n, f)`, `BF_CLR(n, f)`, `BF_HAS(n, f)`: bitflag helpers.
-- `TOSTRING(x)`: stringifies the token `x`.
+| Condition | Available aliases |
+| --- | --- |
+| `TRIMPREFIX` enabled | `panic`, `todo`, `unreachable` |
+| `TRIMPREFIX` disabled | `croma_panic`, `croma_todo`, `croma_unreachable` |
 
-```c
-size_t cap = MB(4);     // 4 * 1024 * 1024
-unsigned flags = 0;
-BF(flags);
-BF_SET(flags, 1u << 2);
-if (BF_HAS(flags, 1u << 2)) {
-    // ...
-}
-```
+### Dynamic array (`DA`) macros
 
-## Note
+| Macro | Description |
+| --- | --- |
+| `DA(type)` | Type-agnostic dynamic array struct (`capacity`, `count`, `items`). |
+| `DA_REALLOC(dest, size)` | Reallocation backend used by array growth (default: `realloc`). |
+| `DA_MALLOC(size)` | Allocation helper macro (default: `malloc`). |
+| `AUTO_TYPE` | Alias to `__auto_type`. |
+| `da_append(da_ptr, value)` | Appends one item, growing capacity if needed. |
+| `da_insert(da_ptr, value, index)` | Inserts at index and shifts following items. |
+| `da_remove(da_ptr, index)` | Removes index and shifts remaining items. |
+| `da_count(da_ptr)` | Returns item count. |
+| `da_index(elem_ptr, da_ptr)` | Returns index for an element pointer. |
+| `da_dup(da_ptr)` | Returns a shallow duplicate struct with copied item buffer. |
+| `da_destroy(da_ptr)` | Frees item buffer and resets array fields. |
+| `for_da_each(it, da_ptr)` | Iterates items as pointers. |
 
-`CROMA_PANIC`, `CROMA_TODO`, and `CROMA_UNREACHABLE` print a message and terminate the program with `abort()`.
+### Queue/stack (`QQ`) macros
+
+| Macro | Description |
+| --- | --- |
+| `QQ(type)` | Alias over `DA(type)` used as queue/stack container. |
+| `for_qq_each` | Alias of `for_da_each`. |
+| `qq_push(q_ptr, value)` | Pushes value to the end. |
+| `qq_pop(q_ptr)` | Removes the last value if present. |
+| `qq_top(q_ptr)` | Returns last value (top). |
+| `qq_count(q_ptr)` | Returns element count. |
+
+### Generic utility macros
+
+| Macro | Description |
+| --- | --- |
+| `MIN(a, b)` | Minimum with single evaluation per argument. |
+| `MAX(a, b)` | Maximum with single evaluation per argument. |
+| `ZERO(x)` | Byte-zeroes an object (`memset`). |
+| `KB(x)` | Returns `x << 10` as `size_t`. |
+| `MB(x)` | Returns `x << 20` as `size_t`. |
+| `GB(x)` | Returns `x << 30` as `size_t`. |
+| `TB(x)` | Returns `x << 40` as `size_t`. |
+| `BF(n)` | Initializes bitflag storage to zero. |
+| `BF_SET(n, f)` | Sets mask `f` in `n`. |
+| `BF_CLR(n, f)` | Clears mask `f` in `n`. |
+| `BF_HAS(n, f)` | True when all bits in `f` are present in `n`. |
+| `TOSTRING(x)` | Stringifies token `x`. |
+
+## Notes
+
+- `CROMA_PANIC`, `CROMA_TODO`, and `CROMA_UNREACHABLE` always call `abort()`.
+- Some macros rely on GNU extensions (`statement expressions`, `__auto_type`, variadic behavior).
